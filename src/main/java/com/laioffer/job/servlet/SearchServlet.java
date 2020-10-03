@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -48,6 +49,21 @@ public class SearchServlet extends HttpServlet {
             item.setFavorite(favoriteItemIds.contains(item.getId()));
         }
 
-        mapper.writeValue(response.getWriter(), items);
+//        String id, String title, String location, String companyLogo, String url, String description, Set<String> keywords, boolean favorite
+        List<Item> arrayListItem = new ArrayList<Item>(items);
+        Item item1 = arrayListItem.get(0);
+        Item item2 = new Item(
+                item1.getId(),
+                item1.getTitle(),
+                item1.getLocation(),
+                item1.getCompanyLogo(),
+                item1.getUrl(),
+                item1.getDescription(),
+                item1.getKeywords(),
+                item1.getFavorite()
+        );
+        arrayListItem.add(item2);
+
+        mapper.writeValue(response.getWriter(), arrayListItem);
     }
 }

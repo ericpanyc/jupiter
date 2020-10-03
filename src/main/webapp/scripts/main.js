@@ -20,7 +20,9 @@
         oRegisterResultField = document.getElementById('register-result'),
 
         oNearbyBtn = document.getElementById('nearby-btn'),
+        oFavBtn = document.getElementById('fav-btn'),
         oRecommendBtn = document.getElementById('recommend-btn'),
+        oNavBtnBox = document.getElementsByClassName('main-nav')[0],
         oNavBtnList = document.getElementsByClassName('main-nav-btn'),
         oItemNav = document.getElementById('item-nav'),
         oItemList = document.getElementById('item-list'),
@@ -30,21 +32,17 @@
 
 
         // default user info
-        userId = '1111',
-        userFullName = 'John',
-        defaultLng = -122,
-        defaultLat = 47;
+        // userId = '1111',
+        // userFullName = 'John',
+        itemArr,
+        lng = -122,
+        lat = 47;
+
 
 
     function init(){
-        // console.log('init');
-        // validation session
-        // persistent login
         validateSession();
-        // to show login form
-        // bind events
         bindEvent();
-
     }
 
     function validateSession(){
@@ -90,7 +88,6 @@
 
     function bindEvent(){
         oRegisterFormBtn.addEventListener('click', function() {
-            // console.log('click register');
             switchLoginRegister('register');
         }, false);
 
@@ -98,24 +95,23 @@
             switchLoginRegister('login');
         }, false);
         // login api
-        oLoginBtn.addEventListener('click', loginExecutor
-        , false);
+        oLoginBtn.addEventListener('click', loginExecutor, false);
+        oItemList.addEventListener('click', changeFavoriteItem, false);
+        oRegisterBtn.addEventListener('click', registerExecutor, false);
+        oNearbyBtn.addEventListener('click', loadNearbyData, false);
+        oFavBtn.addEventListener('click', loadFavoriteItems, false);
+        oRecommendBtn.addEventListener('click', loadRecommendedItems, false);
     }
 
+
     function loginExecutor() {
-        console.log('clicked login button');
         var userName = oLoginUsername.value,
             passWord = oLoginPwd.value;
-        console.log(userName, passWord);
-
         if(userName === '' || passWord ==='') {
             oLoginErrorField.innerHTML = 'Please fill in all fields';
             return;
         }
-
         passWord = md5(userName + md5(passWord));
-        console.log(userName, passWord);
-
         ajax({
             method: 'POST',
             url: './login',
@@ -124,12 +120,10 @@
                 password: passWord
             },
             success: function(res) {
-                console.log(res);
                 if(res.status === "OK") {
                     welcomeMsg(res);
                     fetchData();
                 }
-
             },
             error: function() {
                 throw new Error('Invalid username or password');
@@ -163,7 +157,6 @@
         for(var i = 0; i < len; i++) {
             item = data[i];
             list += oTpl.replace(/{{(.*?)}}/g,function (node, key) {
-                console.log(node, key);
                 if(key === 'location') {
                     return item[key].replace(/,/g, '<br ,>').replace(/\"/,'');
                 }
@@ -221,6 +214,41 @@
         showOrHideElement(oLogoutBtn, 'block');
         // hide login
         showOrHideElement(oLoginForm, 'none');
+    }
+
+    function changeFavoriteItem(evt) {
+        var tar = evt.target,
+            oParent = tar.parentElement;
+
+        if (oParent && oParent.className === 'fav-link') {
+            var oCurLi = oParent.parentElement,
+                classname = tar.className,
+                isFavorite = classname === 'fa fa-heart' ? true : false,
+                oItems = oItemList.getElementsByClassName('item'),
+                index = Array.prototype.indexOf.call(oItems, oCurLi),
+                url = './history',
+                req = {
+                    user_id: userId,
+                    favorite: itemArr[index]
+                };
+            var method = !isFavorite ? 'POST' : 'DELETE';
+
+            ajax({
+                method: method,
+                url: url,
+                data: req,
+                success: function (res) {
+                    if (res.status === 'OK' || res.result === 'SUCCESS') {
+                        tar.className = !isFavorite ? 'fa fa-heart' : 'fa fa-heart-o';
+                    } else {
+                        throw new Error('Change Favorite failed!')
+                    }
+                },
+                error: function () {
+                    throw new Error('Change Favorite failed!')
+                }
+            })
+        }
     }
 
     // AJAX helper
@@ -282,6 +310,65 @@
                 throw new Error('No ' + opt.message + ' items!');
             }
         })
+    }
+
+    function registerExecutor() {
+        var username = oRegisterUsername.value,
+            password = oRegisterPwd.value,
+            firstName = oRegisterFirstName.value,
+            lastName = oRegisterLastName.value;
+
+        if (username === '' || password === '' || firstName === '' || lastName === '') {
+            oRegisterResultField.innerHTML = 'Please fill in  all fields';
+        }
+
+        if (username.match(/^[a-z0-9_]+$/) === null) {
+            oRegisterResultField.innerHTML = 'Invalid username';
+        }
+
+        ajax({
+            method: 'POST',
+            url: './register',
+            data: {
+              user_id: username,
+              password: password,
+              first_name: firstName,
+              last_name: lastName
+            },
+            success: function(res) {
+                if (res.status === 'OK' || res.result === 'OK') {
+                    oRegisterResultField.innerHTML = 'Successfully registered';
+                } else {
+                    oRegisterResultField.innerHTML = 'User already existed';
+                }
+            },
+            error: function() {
+                // show login error
+                throw new Error('Failed to register');
+            }
+        })
+    }
+
+    function loadFavoriteItems() {
+        activeBtn('fav-btn');
+        var opt = {
+            method: 'GET',
+            url: './history?user_id=' + userId,
+            data: null,
+            message: 'favorite'
+        }
+        serverExecutor(opt);
+    }
+
+    function loadRecommendedItems() {
+        activeBtn('recommend-btn');
+        var opt = {
+            method: 'GET',
+            url: './recommendation?user_id=' + userId + '&lat=' + '&lon=' + lng,
+            data: null,
+            message: 'recommended'
+        }
+        serverExecutor(opt);
     }
 
 
